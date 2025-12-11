@@ -19,7 +19,7 @@ const App: React.FC = () => {
   const [consultedFish, setConsultedFish] = useState<number[]>([]);
   const [showFacts, setShowFacts] = useState(false);
   
-  // Track which fortunes have been shown to avoid repeats
+  // Track which fortunes have been shown to avoid repeats for the fallback list
   const [availableIndices, setAvailableIndices] = useState<number[]>(
     Array.from({ length: FORTUNES.length }, (_, i) => i)
   );
@@ -45,7 +45,7 @@ const App: React.FC = () => {
     setConsultedFish([]);
   };
 
-  const handleSardineClick = (rect: DOMRect, index: number) => {
+  const handleSardineClick = async (rect: DOMRect, index: number) => {
     if (isConsulting) return;
 
     // Mark this fish as consulted immediately
@@ -54,7 +54,6 @@ const App: React.FC = () => {
     // Calculate position: Anchor to the fish's head/mouth.
     // The fish head is on the far left of the bounding box (rect).
     // We add a small offset (30px) from the left edge to hit the mouth.
-    // We use half the height to center it vertically on the fish body.
     const targetX = rect.left + 30;
     const targetY = rect.top + (rect.height / 2);
 
@@ -63,33 +62,35 @@ const App: React.FC = () => {
     setLoadingPos({ x: targetX, y: targetY });
     setIsConsulting(true);
 
-    // Simulate consulting the oracle with a delay
-    setTimeout(() => {
-        let currentPool = [...availableIndices];
-        
-        // If we've exhausted the list, reset it to the full list
-        if (currentPool.length === 0) {
-            currentPool = Array.from({ length: FORTUNES.length }, (_, i) => i);
-        }
+    // Simulate "consulting" delay for atmosphere
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-        const randomIndex = Math.floor(Math.random() * currentPool.length);
-        const fortuneIndex = currentPool[randomIndex];
-        
-        // Update state to remove the chosen index
-        const newPool = currentPool.filter(i => i !== fortuneIndex);
-        setAvailableIndices(newPool);
+    let currentPool = [...availableIndices];
+    
+    // If we've exhausted the list, reset it to the full list
+    if (currentPool.length === 0) {
+        currentPool = Array.from({ length: FORTUNES.length }, (_, i) => i);
+    }
 
-        playMysticalSound();
+    const randomIndex = Math.floor(Math.random() * currentPool.length);
+    const fortuneIndex = currentPool[randomIndex];
+    
+    // Update state to remove the chosen index
+    const newPool = currentPool.filter(i => i !== fortuneIndex);
+    setAvailableIndices(newPool);
+    
+    const fortuneText = FORTUNES[fortuneIndex];
 
-        setActiveFortune({
-            text: FORTUNES[fortuneIndex],
-            x: targetX,
-            y: targetY
-        });
-        
-        setIsConsulting(false);
-        setLoadingPos(null);
-    }, 1200);
+    playMysticalSound();
+
+    setActiveFortune({
+        text: fortuneText,
+        x: targetX,
+        y: targetY
+    });
+    
+    setIsConsulting(false);
+    setLoadingPos(null);
   };
 
   // Variants for the typewriter effect
