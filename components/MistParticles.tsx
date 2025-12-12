@@ -1,5 +1,7 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
+
+const { useMemo } = React;
 
 interface MistParticlesProps {
   x: number;

@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
+
+const { useEffect, useState } = React;
 
 const random = (min: number, max: number) => Math.random() * (max - min) + min;
 

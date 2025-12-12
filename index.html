@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>The Sardine Oracle</title>
+    
+    <!-- Styles -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Pirata+One&display=swap');
@@ -113,20 +115,1406 @@
           1px 1px 3px rgba(0,0,0,0.3),
           inset 1px 1px 1px rgba(255,255,255,0.8);
       }
+
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(0,0,0,0.05);
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(0,0,0,0.2);
+        border-radius: 3px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(0,0,0,0.3);
+      }
     </style>
-  <script type="importmap">
+
+    <!-- Dependencies -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/framer-motion@11.0.6/dist/framer-motion.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="importmap">
 {
   "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.1",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.32.0",
-    "framer-motion": "https://aistudiocdn.com/framer-motion@^12.23.25",
-    "react/": "https://aistudiocdn.com/react@^19.2.1/"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.2/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.33.0",
+    "react": "https://esm.sh/react@^19.2.2",
+    "react/": "https://esm.sh/react@^19.2.2/",
+    "framer-motion": "https://esm.sh/framer-motion@^12.23.26"
   }
 }
 </script>
 </head>
   <body>
     <div id="root"></div>
+
+    <script type="text/babel">
+      // --- Globals & Utils ---
+      const { useState, useEffect, useRef, useMemo } = React;
+      const { motion, AnimatePresence, useAnimation } = window.Motion;
+
+      // --- Constants ---
+      const FORTUNES = [
+        "The next tin you open will contain a perfect, unbroken fish. This is a sign of wholeness.",
+        "You are not merely a man; you are the combined wisdom of 27 silver souls, packed spine-to-spine in a single, mighty vessel.",
+        "The future is bright, but also slightly metallic. Prepare for a sheen of success.",
+        "Do not fear the brine; it is merely seasoning for the soul.",
+        "When you feel uncertain, recall the precise texture of a slightly stale saltine cracker. This sensory memory is your true anchor.",
+        "A flicker of light may guide you through the darkness. It is a hook and you are a small fish. Do not be fooled.",
+        "When the grocery list is blank, destiny is full. Tonight, you are a purist. Tomorrow, you might buy eggs.",
+        "A sardine dinner is a prophecy: You have chosen simplicity over chaos. The wisdom of the empty refrigerator is immense.",
+        "A shadow passes. It is only the ghost of a larger, hungrier fish. Worry not, you are safe.",
+        "Consult the back label of the soul. Your true destiny is found in the smallest details.",
+        "A small, persistent piece of lint will attach itself to the back of your sweater until you enter a grocery store. This is the only sign you need today.",
+        "A great, rich depth of flavor awaits you just beyond the expiration date."
+      ];
+
+      const FACTS = [
+        { 
+            title: "The Name Origin", 
+            text: "The term 'sardine' was first used in English during the early 15th century and may come from the Mediterranean island of Sardinia, where they were once abundant." 
+        },
+        { 
+            title: "The Bait Ball", 
+            text: "When threatened, sardines instinctively group together into a tight sphere known as a 'bait ball'. This mesmerizing formation can be up to 20 meters wide and protects single fish from predators." 
+        },
+        { 
+            title: "A Broad Family", 
+            text: "'Sardine' isn't actually a single species. It is a common name used to refer to various small, oily forage fish in the herring family, Clupeidae." 
+        },
+        { 
+            title: "Clean Eaters", 
+            text: "Sardines feed almost exclusively on zooplankton by filtering water as they swim. Because they are low on the food chain, they contain very low levels of mercury compared to other fish." 
+        }
+      ];
+
+      const STORIES = [
+        {
+            name: "Percival the Preserved",
+            cannedDate: "Nov 14, 1923",
+            story: "Percival firmly believes the olive oil surrounding him is actually an expensive anti-aging serum. He plans to emerge in 2050 looking younger than when he was caught."
+        },
+        {
+            name: "Captain Salt",
+            cannedDate: "Feb 29, 1984",
+            story: "Captain Salt believes the brine will eventually dissolve all meaning. He constantly wonders if the pull-tab is a sign of liberation or just the mechanism of doom."
+        },
+        {
+            name: "Barnaby 'Big Gulp'",
+            cannedDate: "Aug 12, 2021",
+            story: "Barnaby spent his days debating whether the ocean was infinite or if it just had really clear walls. He concluded that the tin is actually a cozy studio apartment in a trendy neighborhood."
+        },
+        {
+            name: "Lady Glimmer",
+            cannedDate: "Dec 31, 1899",
+            story: "She claims to be royalty from the Atlantic Ridge. She insists on being packed 'head-to-tail' only with fish of noble lineage. The quality control inspector disagreed."
+        }
+      ];
+
+      // --- Audio Service ---
+      let audioCtx = null;
+
+      const getCtx = () => {
+          try {
+              if (!audioCtx) {
+                  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                  if (AudioContextClass) {
+                      audioCtx = new AudioContextClass();
+                  }
+              }
+              return audioCtx;
+          } catch (e) {
+              console.error("Web Audio API initialization failed", e);
+              return null;
+          }
+      }
+
+      const safeResume = (ctx) => {
+          try {
+              if (ctx.state === 'suspended') {
+                  ctx.resume().catch(e => console.warn("Audio resume failed", e));
+              }
+          } catch (e) {
+              // Ignore resume errors
+          }
+      }
+
+      const playTinSound = () => {
+          try {
+              const ctx = getCtx();
+              if (!ctx) return;
+              safeResume(ctx);
+              const t = ctx.currentTime;
+
+              const notes = [130.81, 196.00, 261.63, 329.63]; 
+              
+              notes.forEach((freq, i) => {
+                  const osc = ctx.createOscillator();
+                  osc.type = 'sine';
+                  osc.frequency.setValueAtTime(freq, t);
+
+                  const gain = ctx.createGain();
+                  gain.gain.setValueAtTime(0, t);
+                  gain.gain.linearRampToValueAtTime(0.15, t + 0.3 + (i * 0.05)); 
+                  gain.gain.exponentialRampToValueAtTime(0.001, t + 2.5);
+
+                  osc.connect(gain);
+                  gain.connect(ctx.destination);
+                  osc.start(t);
+                  osc.stop(t + 3.0);
+              });
+
+              const bufferSize = ctx.sampleRate * 2;
+              const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+              const data = buffer.getChannelData(0);
+              for (let i = 0; i < bufferSize; i++) {
+                  data[i] = Math.random() * 2 - 1; 
+              }
+
+              const noiseSrc = ctx.createBufferSource();
+              noiseSrc.buffer = buffer;
+
+              const noiseFilter = ctx.createBiquadFilter();
+              noiseFilter.type = 'lowpass';
+              noiseFilter.frequency.setValueAtTime(100, t);
+              noiseFilter.frequency.exponentialRampToValueAtTime(800, t + 1.5); 
+
+              const noiseGain = ctx.createGain();
+              noiseGain.gain.setValueAtTime(0, t);
+              noiseGain.gain.linearRampToValueAtTime(0.1, t + 0.5); 
+              noiseGain.gain.linearRampToValueAtTime(0, t + 2.0);
+
+              noiseSrc.connect(noiseFilter);
+              noiseFilter.connect(noiseGain);
+              noiseGain.connect(ctx.destination);
+              noiseSrc.start(t);
+              noiseSrc.stop(t + 2.0);
+
+              const drumOsc = ctx.createOscillator();
+              drumOsc.type = 'sine';
+              drumOsc.frequency.setValueAtTime(80, t);
+              drumOsc.frequency.exponentialRampToValueAtTime(40, t + 0.3);
+
+              const drumGain = ctx.createGain();
+              drumGain.gain.setValueAtTime(0.25, t);
+              drumGain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+
+              drumOsc.connect(drumGain);
+              drumGain.connect(ctx.destination);
+              drumOsc.start(t);
+              drumOsc.stop(t + 0.6);
+          } catch (e) {
+              console.error("Error playing tin sound", e);
+          }
+      };
+
+      const playMysticalSound = () => {
+          try {
+              const ctx = getCtx();
+              if (!ctx) return;
+              safeResume(ctx);
+              const t = ctx.currentTime;
+
+              const freqs = [523.25, 659.25, 783.99, 1046.50, 1318.51]; 
+              
+              freqs.forEach((f, i) => {
+                  const osc = ctx.createOscillator();
+                  osc.type = 'sine';
+                  osc.frequency.value = f;
+                  
+                  const gain = ctx.createGain();
+                  gain.gain.setValueAtTime(0, t);
+                  gain.gain.linearRampToValueAtTime(0.15, t + 0.1 + (i * 0.08));
+                  gain.gain.exponentialRampToValueAtTime(0.0001, t + 4.0);
+                  gain.gain.linearRampToValueAtTime(0, t + 4.1);
+                  
+                  osc.connect(gain);
+                  gain.connect(ctx.destination);
+                  
+                  osc.start(t);
+                  osc.stop(t + 4.1);
+              });
+
+              const carrier = ctx.createOscillator();
+              carrier.type = 'sine';
+              carrier.frequency.setValueAtTime(2000, t);
+              
+              const modulator = ctx.createOscillator();
+              modulator.type = 'triangle';
+              modulator.frequency.setValueAtTime(40, t); 
+              
+              const modGain = ctx.createGain();
+              modGain.gain.value = 500;
+              
+              modulator.connect(modGain);
+              modGain.connect(carrier.frequency);
+              
+              const carrierGain = ctx.createGain();
+              carrierGain.gain.setValueAtTime(0, t);
+              carrierGain.gain.linearRampToValueAtTime(0.1, t + 0.2);
+              carrierGain.gain.exponentialRampToValueAtTime(0.0001, t + 2.5);
+              carrierGain.gain.linearRampToValueAtTime(0, t + 2.6);
+              
+              carrier.connect(carrierGain);
+              carrierGain.connect(ctx.destination);
+              
+              carrier.start(t);
+              modulator.start(t);
+              carrier.stop(t + 2.6);
+              modulator.stop(t + 2.6);
+          } catch (e) {
+              console.error("Error playing mystical sound", e);
+          }
+      };
+
+      const playAcceptFateSound = () => {
+          try {
+              const ctx = getCtx();
+              if (!ctx) return;
+              safeResume(ctx);
+              const t = ctx.currentTime;
+
+              const notes = [220.00, 277.18, 329.63, 415.30];
+
+              notes.forEach((freq, i) => {
+                  const osc = ctx.createOscillator();
+                  osc.type = 'sine'; 
+                  osc.frequency.setValueAtTime(freq, t);
+
+                  const gain = ctx.createGain();
+                  gain.gain.setValueAtTime(0, t);
+                  gain.gain.linearRampToValueAtTime(0.15, t + 0.05 + (i * 0.02)); 
+                  gain.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
+
+                  osc.connect(gain);
+                  gain.connect(ctx.destination);
+                  osc.start(t);
+                  osc.stop(t + 1.6);
+              });
+
+              const bufferSize = ctx.sampleRate * 1.0;
+              const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+              const data = buffer.getChannelData(0);
+              for (let i = 0; i < bufferSize; i++) {
+                  data[i] = Math.random() * 2 - 1;
+              }
+
+              const noise = ctx.createBufferSource();
+              noise.buffer = buffer;
+
+              const filter = ctx.createBiquadFilter();
+              filter.type = 'highpass';
+              filter.frequency.setValueAtTime(2000, t); 
+
+              const noiseGain = ctx.createGain();
+              noiseGain.gain.setValueAtTime(0.1, t);
+              noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.4); 
+
+              noise.connect(filter);
+              filter.connect(noiseGain);
+              noiseGain.connect(ctx.destination);
+              noise.start(t);
+              noise.stop(t + 0.5);
+          } catch (e) {
+              console.error("Error playing fate sound", e);
+          }
+      };
+
+      const playResetSound = () => {
+          try {
+              const ctx = getCtx();
+              if (!ctx) return;
+              safeResume(ctx);
+              const t = ctx.currentTime;
+
+              const bufferSize = ctx.sampleRate * 2.0;
+              const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+              const data = buffer.getChannelData(0);
+              for (let i = 0; i < bufferSize; i++) {
+                  data[i] = (Math.random() * 2 - 1) * 0.5;
+              }
+
+              const noise = ctx.createBufferSource();
+              noise.buffer = buffer;
+
+              const filter = ctx.createBiquadFilter();
+              filter.type = 'lowpass';
+              filter.frequency.setValueAtTime(80, t);
+              filter.frequency.exponentialRampToValueAtTime(800, t + 1.2);
+
+              const noiseGain = ctx.createGain();
+              noiseGain.gain.setValueAtTime(0, t);
+              noiseGain.gain.linearRampToValueAtTime(0.3, t + 0.5); 
+              noiseGain.gain.linearRampToValueAtTime(0, t + 1.5);   
+
+              noise.connect(filter);
+              filter.connect(noiseGain);
+              noiseGain.connect(ctx.destination);
+              noise.start(t);
+              noise.stop(t + 1.6);
+
+              const osc = ctx.createOscillator();
+              osc.type = 'sine';
+              osc.frequency.setValueAtTime(60, t);
+              osc.frequency.linearRampToValueAtTime(90, t + 1.2); 
+
+              const oscGain = ctx.createGain();
+              oscGain.gain.setValueAtTime(0, t);
+              oscGain.gain.linearRampToValueAtTime(0.4, t + 0.6);
+              oscGain.gain.linearRampToValueAtTime(0, t + 1.4);
+
+              osc.connect(oscGain);
+              oscGain.connect(ctx.destination);
+              osc.start(t);
+              osc.stop(t + 1.5);
+          } catch (e) {
+              console.error("Error playing reset sound", e);
+          }
+      };
+
+      const playPageTurnSound = () => {
+          try {
+              const ctx = getCtx();
+              if (!ctx) return;
+              safeResume(ctx);
+              const t = ctx.currentTime;
+
+              const bufferSize = ctx.sampleRate * 0.5;
+              const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+              const data = buffer.getChannelData(0);
+              for (let i = 0; i < bufferSize; i++) {
+                  data[i] = (Math.random() * 2 - 1) * 0.8;
+              }
+
+              const noise = ctx.createBufferSource();
+              noise.buffer = buffer;
+
+              const filter = ctx.createBiquadFilter();
+              filter.type = 'lowpass';
+              filter.frequency.setValueAtTime(200, t);
+              filter.frequency.linearRampToValueAtTime(800, t + 0.3); 
+
+              const gain = ctx.createGain();
+              gain.gain.setValueAtTime(0, t);
+              gain.gain.linearRampToValueAtTime(0.2, t + 0.1);
+              gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+
+              noise.connect(filter);
+              filter.connect(gain);
+              gain.connect(ctx.destination);
+              noise.start(t);
+              noise.stop(t + 0.5);
+          } catch (e) {
+              console.error("Error playing page turn", e);
+          }
+      }
+
+      const playCloseClickSound = () => {
+          try {
+              const ctx = getCtx();
+              if (!ctx) return;
+              safeResume(ctx);
+              const t = ctx.currentTime;
+              
+              const osc = ctx.createOscillator();
+              osc.type = 'triangle';
+              osc.frequency.setValueAtTime(150, t);
+              osc.frequency.exponentialRampToValueAtTime(50, t + 0.1);
+
+              const gain = ctx.createGain();
+              gain.gain.setValueAtTime(0.2, t);
+              gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start(t);
+              osc.stop(t + 0.2);
+          } catch (e) {
+              console.error("Error playing close click", e);
+          }
+      }
+
+      // --- Components ---
+
+      const random = (min, max) => Math.random() * (max - min) + min;
+
+      const Sparkles = () => {
+        const [sparkles, setSparkles] = useState([]);
+
+        useEffect(() => {
+          const generateSparkles = () => {
+            const newSparkles = Array.from({ length: 20 }).map((_, i) => ({
+              id: `sparkle-${i}`,
+              x: random(0, 100),
+              y: random(0, 100),
+              size: random(2, 6),
+              duration: random(2, 5),
+              delay: random(0, 2),
+            }));
+            setSparkles(newSparkles);
+          };
+
+          generateSparkles();
+        }, []);
+
+        return (
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            {sparkles.map((s) => (
+              <motion.div
+                key={s.id}
+                className="absolute rounded-full bg-white shadow-[0_0_8px_2px_rgba(255,255,255,0.8)]"
+                style={{
+                  left: `${s.x}%`,
+                  top: `${s.y}%`,
+                  width: s.size,
+                  height: s.size,
+                }}
+                animate={{
+                  opacity: [0, 1, 0],
+                  scale: [0, 1.5, 0],
+                }}
+                transition={{
+                  duration: s.duration,
+                  repeat: Infinity,
+                  delay: s.delay,
+                  ease: "easeInOut",
+                }}
+              />
+            ))}
+          </div>
+        );
+      };
+
+      const MistParticles = ({ x, y }) => {
+        const particles = useMemo(() => Array.from({ length: 15 }).map((_, i) => ({
+          id: i,
+          initialX: (Math.random() - 0.5) * 40,
+          targetX: (Math.random() - 0.5) * 120, // Drift spread
+          targetY: -80 - Math.random() * 120, // Upward distance
+          duration: 1.5 + Math.random() * 2,
+          delay: Math.random() * 0.5,
+          scale: 0.5 + Math.random(),
+          isBubble: Math.random() > 0.6 // 40% chance of being a bubble
+        })), []);
+
+        return (
+          <div className="fixed inset-0 pointer-events-none z-40 overflow-hidden">
+            {particles.map((p) => (
+              <motion.div
+                key={p.id}
+                initial={{ 
+                  x: x + p.initialX, 
+                  y: y, 
+                  opacity: 0, 
+                  scale: 0 
+                }}
+                animate={{ 
+                  x: x + p.targetX, 
+                  y: y + p.targetY, 
+                  opacity: [0, p.isBubble ? 0.8 : 0.4, 0], 
+                  scale: [0, p.scale, p.scale * 1.2],
+                  rotate: p.isBubble ? 0 : Math.random() * 360
+                }}
+                transition={{
+                  duration: p.duration,
+                  repeat: Infinity,
+                  delay: p.delay,
+                  ease: "easeOut"
+                }}
+                className={`absolute rounded-full ${
+                  p.isBubble 
+                    ? 'bg-cyan-100/40 border border-white/60 shadow-[0_0_8px_rgba(255,255,255,0.6)]' 
+                    : 'bg-slate-300/30 blur-md'
+                }`}
+                style={{
+                  width: p.isBubble ? 6 + Math.random() * 6 : 20 + Math.random() * 20,
+                  height: p.isBubble ? 6 + Math.random() * 6 : 20 + Math.random() * 20,
+                }}
+              />
+            ))}
+          </div>
+        );
+      };
+
+      const WaterRipples = () => {
+        return (
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <svg className="hidden">
+              <defs>
+                <filter id="ripple-filter">
+                  <feTurbulence 
+                    type="fractalNoise" 
+                    baseFrequency="0.005 0.005" 
+                    numOctaves="2" 
+                    seed="1"
+                  >
+                    <animate 
+                      attributeName="baseFrequency" 
+                      dur="30s" 
+                      values="0.005 0.005;0.008 0.008;0.005 0.005" 
+                      repeatCount="indefinite" 
+                    />
+                  </feTurbulence>
+                  <feDisplacementMap in="SourceGraphic" scale="50" />
+                </filter>
+              </defs>
+            </svg>
+
+            <div 
+              className="absolute inset-[-100px] opacity-20"
+              style={{ filter: 'url(#ripple-filter)' }}
+            >
+              <div className="absolute inset-0 bg-[repeating-linear-gradient(185deg,transparent_0,transparent_40px,rgba(203,213,225,0.2)_41px,transparent_60px)]" />
+               <div className="absolute inset-0 bg-[repeating-linear-gradient(175deg,transparent_0,transparent_60px,rgba(148,163,184,0.1)_61px,transparent_90px)]" />
+            </div>
+            
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(2,6,23,0.8)_100%)]" />
+          </div>
+        );
+      };
+
+      const SardineFacts = ({ onClose }) => {
+        const [activeTab, setActiveTab] = useState('facts');
+
+        useEffect(() => {
+            playPageTurnSound();
+        }, []);
+
+        const handleTabChange = (tab) => {
+            if (activeTab !== tab) {
+                playPageTurnSound();
+                setActiveTab(tab);
+            }
+        };
+
+        const handleClose = (e) => {
+            e.stopPropagation();
+            playCloseClickSound();
+            onClose();
+        };
+
+        return (
+            <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+            onClick={handleClose}
+            >
+            <motion.div 
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                className="bg-[#cbd5e1] w-full max-w-3xl rounded-xl shadow-2xl overflow-hidden relative border-4 border-[#94a3b8] flex flex-col max-h-[85vh]"
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Header */}
+                <div className="p-6 bg-[#1e293b] flex justify-between items-center relative overflow-hidden shadow-md shrink-0">
+                    <div className="absolute inset-0 bg-tin-lid-texture opacity-10 mix-blend-overlay" />
+                    
+                    <h2 className="text-3xl md:text-4xl font-mystical text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-slate-400 tracking-widest relative z-10 drop-shadow-md">
+                        Secrets of the Shoal
+                    </h2>
+                    <button 
+                        onClick={handleClose}
+                        className="text-slate-400 hover:text-white transition-colors relative z-10 p-2 hover:bg-white/10 rounded-full"
+                        aria-label="Close facts"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex bg-[#334155] border-b-4 border-[#475569] shrink-0">
+                    <button
+                        onClick={() => handleTabChange('facts')}
+                        className={`flex-1 py-3 text-center font-mystical text-xl md:text-2xl tracking-wider transition-colors relative ${
+                            activeTab === 'facts' 
+                            ? 'bg-[#cbd5e1] text-slate-800 shadow-[inset_0_4px_6px_rgba(0,0,0,0.1)]' 
+                            : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+                        }`}
+                    >
+                        Taxonomy & the Tin
+                        {activeTab === 'facts' && <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500/50" />}
+                    </button>
+                    <button
+                        onClick={() => handleTabChange('stories')}
+                        className={`flex-1 py-3 text-center font-mystical text-xl md:text-2xl tracking-wider transition-colors relative ${
+                            activeTab === 'stories' 
+                            ? 'bg-[#cbd5e1] text-slate-800 shadow-[inset_0_4px_6px_rgba(0,0,0,0.1)]' 
+                            : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+                        }`}
+                    >
+                        Legends of the Oracles
+                        {activeTab === 'stories' && <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500/50" />}
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 md:p-8 overflow-y-auto bg-slate-200 custom-scrollbar flex-1">
+                    <AnimatePresence mode="wait">
+                        {activeTab === 'facts' ? (
+                            <motion.div 
+                                key="facts"
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                transition={{ duration: 0.2 }}
+                                className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                            >
+                                {FACTS.map((fact, index) => (
+                                    <motion.div 
+                                        key={index} 
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.1 }}
+                                        className="bg-white p-5 rounded-lg shadow-[0_2px_10px_rgba(0,0,0,0.05)] border border-slate-300 hover:border-slate-400 hover:shadow-lg transition-colors transition-shadow duration-300 group"
+                                    >
+                                        <div className="flex items-start gap-3 mb-2">
+                                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200 text-slate-400 font-mystical text-lg pt-1 group-hover:bg-slate-200 group-hover:text-slate-600 transition-colors">
+                                                {index + 1}
+                                            </div>
+                                            <h3 className="font-mystical text-2xl text-slate-700 pt-1 group-hover:text-indigo-900 transition-colors">{fact.title}</h3>
+                                        </div>
+                                        <p className="font-mono text-l text-slate-600 leading-snug pl-11">
+                                            {fact.text}
+                                        </p>
+                                    </motion.div>
+                                ))}
+                            </motion.div>
+                        ) : (
+                            <motion.div 
+                                key="stories"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                transition={{ duration: 0.2 }}
+                                className="grid grid-cols-1 gap-6"
+                            >
+                                {STORIES.map((story, index) => (
+                                    <motion.div 
+                                        key={index} 
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.1 }}
+                                        className="bg-[#f1f5f9] p-5 rounded-lg shadow-sm border border-slate-300 flex flex-col md:flex-row gap-4 items-start"
+                                    >
+                                        <div className="w-full md:w-36 shrink-0 bg-slate-200 rounded p-3 text-center border border-slate-300 shadow-inner flex flex-col items-center justify-center min-h-[90px]">
+                                            <div className="text-3xl mb-1 opacity-50">🐟</div>
+                                            <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Canned In</div>
+                                            <div className="font-mono text-base font-bold text-slate-700 leading-none mt-1">{story.cannedDate}</div>
+                                        </div>
+                                        <div>
+                                            <h3 className="font-mystical text-2xl text-slate-800 mb-2">{story.name}</h3>
+                                            <p className="font-mono text-slate-600 italic leading-relaxed">
+                                                "{story.story}"
+                                            </p>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                    
+                    <div className="mt-8 text-center opacity-60">
+                        <p className="text-xs text-slate-500 uppercase tracking-[0.3em] font-mono">
+                            Mystic Sardine Co. • Est 2025
+                        </p>
+                    </div>
+                </div>
+            </motion.div>
+            </motion.div>
+        );
+      };
+
+      const Sardine = ({ id, onClick, delay, isConsulted }) => {
+        const controls = useAnimation();
+        const isMounted = useRef(false);
+
+        const uniqueId = `sardine-${id}`;
+        const aliveGradientId = `fishGradient-alive-${uniqueId}`;
+        const deadGradientId = `fishGradient-dead-${uniqueId}`;
+        const shimmerId = `shimmerGradient-${uniqueId}`;
+        const wetId = `wetGradient-${uniqueId}`;
+        const clipId = `fishClip-${uniqueId}`;
+
+        useEffect(() => {
+          controls.start({ 
+            opacity: isConsulted ? 0.6 : 1,
+            y: 0,
+            scale: 1,
+            rotate: [5, -3, 2, -1, 0],
+            transition: { 
+              delay: delay, 
+              duration: 1.2,
+              ease: "easeOut",
+              times: [0, 0.3, 0.6, 0.8, 1]
+            }
+          });
+        }, [delay, controls]);
+
+        useEffect(() => {
+          if (!isMounted.current) {
+              isMounted.current = true;
+              return;
+          }
+
+          if (isConsulted) {
+              controls.start({
+                  opacity: 0.6,
+                  scale: 0.9,
+                  rotate: 0,
+                  transition: { duration: 0.8, ease: "easeInOut" }
+              });
+          } else {
+              controls.start({
+                  opacity: 1,
+                  scale: 1,
+                  rotate: 0,
+                  transition: { duration: 0.5 }
+              });
+          }
+        }, [isConsulted, controls]);
+
+        const bodyPath = "M 10 50 Q 90 20, 200 50 Q 280 70, 290 50 Q 280 30, 200 50 Q 90 80, 10 50 Z";
+        const tailPath = "M 290 50 L 300 35 L 295 50 L 300 65 Z";
+
+        const handleClick = (e) => {
+          if (isConsulted) {
+            e.stopPropagation();
+            controls.start({
+              rotate: [0, -1, 1, -1, 1, 0],
+              transition: { duration: 0.3 }
+            });
+          } else {
+            onClick(e);
+          }
+        };
+
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.9, rotate: 5 }}
+            animate={controls}
+            whileHover={isConsulted ? {} : { scale: 1.02 }}
+            whileTap={isConsulted ? {} : { scale: 0.98 }}
+            className={`relative group w-full h-24 my-1 ${isConsulted ? 'cursor-default' : 'cursor-pointer'}`} 
+            onClick={handleClick}
+            style={{ willChange: 'transform, opacity' }}
+          >
+            <svg
+              viewBox="0 0 300 100"
+              className="w-full h-full drop-shadow-xl"
+              preserveAspectRatio="none"
+            >
+              <defs>
+                <linearGradient id={aliveGradientId} x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#94a3b8" />
+                  <stop offset="30%" stopColor="#e2e8f0" />
+                  <stop offset="50%" stopColor="#cbd5e1" />
+                  <stop offset="80%" stopColor="#64748b" />
+                  <stop offset="100%" stopColor="#475569" />
+                </linearGradient>
+
+                <linearGradient id={deadGradientId} x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#475569" />
+                  <stop offset="30%" stopColor="#64748b" />
+                  <stop offset="50%" stopColor="#475569" />
+                  <stop offset="80%" stopColor="#334155" />
+                  <stop offset="100%" stopColor="#1e293b" />
+                </linearGradient>
+                
+                <linearGradient id={shimmerId} x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="white" stopOpacity="0" />
+                  <stop offset="40%" stopColor="white" stopOpacity="0.1" />
+                  <stop offset="50%" stopColor="white" stopOpacity="0.6" />
+                  <stop offset="60%" stopColor="white" stopOpacity="0.1" />
+                  <stop offset="100%" stopColor="white" stopOpacity="0" />
+                </linearGradient>
+
+                <linearGradient id={wetId} x1="0%" y1="0%" x2="100%" y2="100%">
+                   <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.2" />
+                   <stop offset="50%" stopColor="#a5b4fc" stopOpacity="0.3" />
+                   <stop offset="100%" stopColor="#2dd4bf" stopOpacity="0.2" />
+                </linearGradient>
+
+                <clipPath id={clipId}>
+                  <path d={bodyPath} />
+                  <path d={tailPath} />
+                </clipPath>
+              </defs>
+              
+              <g opacity={1}>
+                   <path d={bodyPath} fill={`url(#${deadGradientId})`} stroke="#334155" strokeWidth="1" />
+                   <path d={tailPath} fill="#475569" />
+                   <circle cx="40" cy="48" r="4" fill="#334155" />
+                   <circle cx="42" cy="46" r="1.5" fill="#64748b" />
+              </g>
+
+              <motion.g 
+                  initial={{ opacity: 1 }}
+                  animate={{ opacity: isConsulted ? 0 : 1 }}
+                  transition={{ duration: 0.8 }}
+              >
+                  <path d={bodyPath} fill={`url(#${aliveGradientId})`} stroke="#475569" strokeWidth="1" />
+                  <path d={tailPath} fill="#64748b" />
+                  
+                  <rect width="100%" height="100%" fill={`url(#${wetId})`} clipPath={`url(#${clipId})`} className="opacity-100" />
+                  
+                  <circle cx="40" cy="48" r="4" fill="#000" />
+                  <circle cx="42" cy="46" r="1.5" fill="#fff" />
+
+                  <path d="M 60 50 Q 65 48, 70 50" stroke="rgba(0,0,0,0.2)" fill="none" />
+                  <path d="M 75 50 Q 80 48, 85 50" stroke="rgba(0,0,0,0.2)" fill="none" />
+                  <path d="M 67 53 Q 72 51, 77 53" stroke="rgba(0,0,0,0.2)" fill="none" />
+              </motion.g>
+
+              {!isConsulted && (
+                   <motion.rect
+                      width="100%" height="100%"
+                      fill="white"
+                      clipPath={`url(#${clipId})`}
+                      initial={{ opacity: 0 }}
+                      whileHover={{ opacity: 0.15 }}
+                      transition={{ duration: 0.2 }}
+                      className="pointer-events-none"
+                   />
+              )}
+
+              {!isConsulted && (
+                  <motion.rect
+                  x="-100%"
+                  y="0"
+                  width="100%"
+                  height="100%"
+                  fill={`url(#${shimmerId})`}
+                  clipPath={`url(#${clipId})`}
+                  animate={{ x: ["-120%", "200%"] }}
+                  transition={{ 
+                      repeat: Infinity, 
+                      duration: 1.8, 
+                      ease: "easeInOut",
+                      repeatDelay: 0.5
+                  }}
+                  className="opacity-40 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                  />
+              )}
+            </svg>
+          </motion.div>
+        );
+      };
+
+      const Tin = ({
+        id,
+        isSelected,
+        isOtherSelected,
+        gameState,
+        consultedFish,
+        onSelect,
+        onSardineClick,
+      }) => {
+        const [isHovered, setIsHovered] = useState(false);
+
+        if (isOtherSelected) return null;
+
+        const handleClick = () => {
+          if (gameState === 'CHOOSING') {
+            onSelect(id);
+          }
+        };
+
+        const handleSardineClick = (e, index) => {
+          e.stopPropagation();
+          const rect = e.target.closest('div')?.getBoundingClientRect();
+          if (rect) {
+            onSardineClick(rect, index);
+          }
+        };
+
+        const isInteractive = gameState === 'CHOOSING' && !isSelected;
+        const pullTabVariants = {
+          hover: {
+            scale: 1.05,
+            rotate: 95,
+            filter: "drop-shadow(-2px 4px 4px rgba(0,0,0,0.3))",
+            transition: { duration: 0.3, ease: "easeOut" }
+          },
+          idle: {
+            scale: 1,
+            rotate: 90,
+            filter: "drop-shadow(-1px 2px 2px rgba(0,0,0,0.2))",
+            transition: { duration: 0.3, ease: "easeIn" }
+          }
+        };
+
+        return (
+          <motion.div
+            layoutId={`tin-${id}`}
+            className={`relative rounded-xl shadow-2xl transition-all duration-700
+              ${isSelected ? 'w-[600px] h-[350px] z-20 cursor-default' : 'w-64 h-40 z-10 cursor-pointer'}
+              ${!isSelected && 'hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]'}
+            `}
+            onClick={handleClick}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            initial={false}
+            animate={{
+              scale: isSelected ? 1 : isHovered ? 1.05 : 1,
+            }}
+          >
+            <div className={`w-full h-full rounded-xl overflow-hidden relative tin-rim-bevel border-4 shadow-xl bg-[#cbd5e1]`}>
+              
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_#334155_0%,_#1e293b_100%)] p-6 flex flex-col justify-center items-center opacity-100 box-border border-b border-white/10">
+                  <div className="absolute inset-0 shadow-[inset_0_0_30px_rgba(0,0,0,0.6)] pointer-events-none" />
+                  
+                  {isSelected && (
+                    <div className="w-full h-full flex flex-col justify-evenly px-4 relative z-10">
+                      <Sardine 
+                        id={0} 
+                        delay={0.2} 
+                        isConsulted={consultedFish.includes(0)}
+                        onClick={(e) => handleSardineClick(e, 0)} 
+                      />
+                      <Sardine 
+                        id={1} 
+                        delay={0.4} 
+                        isConsulted={consultedFish.includes(1)}
+                        onClick={(e) => handleSardineClick(e, 1)} 
+                      />
+                      <Sardine 
+                        id={2} 
+                        delay={0.6} 
+                        isConsulted={consultedFish.includes(2)}
+                        onClick={(e) => handleSardineClick(e, 2)} 
+                      />
+                    </div>
+                  )}
+              </div>
+
+              <motion.div
+                className="absolute inset-0 bg-tin-lid-texture rounded-lg z-30 flex items-center justify-center shadow-lg overflow-hidden"
+                initial={false}
+                animate={{
+                  y: isSelected ? '-120%' : '0%',
+                  rotateX: isSelected ? 20 : 0,
+                  opacity: isSelected ? 0 : 1, 
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 40,
+                  damping: 15,
+                  delay: isSelected ? 0.2 : 0 
+                }}
+              >
+                <div className="absolute inset-3 border border-slate-500/20 rounded-md tin-groove opacity-60 pointer-events-none" />
+                
+                {!isSelected && isHovered && (
+                  <motion.div
+                    className="absolute inset-0 z-10 pointer-events-none"
+                    initial={{ x: "-150%" }}
+                    animate={{ x: "150%" }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1.5,
+                      ease: "linear",
+                      repeatDelay: 0.5
+                    }}
+                    style={{
+                      background: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.1) 45%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.1) 55%, transparent 70%)",
+                      transform: "skewX(-20deg)",
+                      mixBlendMode: "overlay"
+                    }}
+                  />
+                )}
+
+                <motion.div
+                  layout="position"
+                  className="absolute top-5 right-12 w-8 h-12 z-20 pointer-events-none"
+                >
+                   <motion.div 
+                      className="w-full h-full origin-bottom-right"
+                      variants={pullTabVariants}
+                      initial="idle"
+                      animate={isHovered && isInteractive ? "hover" : "idle"}
+                   >
+                      <div className="absolute inset-0 rounded-t-lg rounded-b-md pull-tab-metal border border-slate-400" />
+                      
+                      <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-5 h-6 rounded-full bg-tin-lid-texture shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)] border border-white/50" />
+                      
+                      <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-slate-300 shadow-md border border-slate-400" />
+                   </motion.div>
+                </motion.div>
+                
+                <motion.div 
+                  layout
+                  className="text-center pointer-events-none relative z-10 opacity-80 flex flex-col items-center justify-center"
+                >
+                   <motion.h2 
+                     layout
+                     className="font-mystical font-bold text-embossed tracking-widest text-slate-700 leading-none"
+                   >
+                      <span className="block text-3xl">Mystic</span>
+                      <span className="block text-xl mt-1">Sardine Co.</span>
+                   </motion.h2>
+                   <motion.p 
+                     layout
+                     className="text-[10px] text-slate-600 font-mono tracking-[0.4em] font-bold mt-2 uppercase text-embossed"
+                   >
+                     EST. 2025
+                   </motion.p>
+                </motion.div>
+
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white to-transparent opacity-10 pointer-events-none mix-blend-soft-light" />
+              </motion.div>
+
+            </div>
+          </motion.div>
+        );
+      };
+
+      // --- Main App ---
+
+      const App = () => {
+        const [gameState, setGameState] = useState('SPLASH');
+        const [selectedTin, setSelectedTin] = useState(null);
+        const [activeFortune, setActiveFortune] = useState(null);
+        const [loadingPos, setLoadingPos] = useState(null);
+        const [isConsulting, setIsConsulting] = useState(false);
+        const [isTextAnimationComplete, setIsTextAnimationComplete] = useState(false);
+        const [consultedFish, setConsultedFish] = useState([]);
+        const [showFacts, setShowFacts] = useState(false);
+        
+        const [availableIndices, setAvailableIndices] = useState(
+          Array.from({ length: FORTUNES.length }, (_, i) => i)
+        );
+
+        const handleStart = () => {
+          playResetSound();
+          setGameState('CHOOSING');
+        };
+
+        const handleTinSelect = (id) => {
+          playTinSound();
+          setGameState('OPENING');
+          setSelectedTin(id);
+          setTimeout(() => setGameState('REVEALED'), 800);
+        };
+
+        const handleReset = () => {
+          playResetSound();
+          setActiveFortune(null);
+          setGameState('CHOOSING');
+          setSelectedTin(null);
+          setConsultedFish([]);
+        };
+
+        const handleSardineClick = async (rect, index) => {
+          if (isConsulting) return;
+
+          setConsultedFish(prev => [...prev, index]);
+
+          const targetX = rect.left + 30;
+          const targetY = rect.top + (rect.height / 2);
+
+          setActiveFortune(null);
+          setIsTextAnimationComplete(false);
+          setLoadingPos({ x: targetX, y: targetY });
+          setIsConsulting(true);
+
+          await new Promise(resolve => setTimeout(resolve, 1500));
+
+          let currentPool = [...availableIndices];
+          
+          if (currentPool.length === 0) {
+              currentPool = Array.from({ length: FORTUNES.length }, (_, i) => i);
+          }
+
+          const randomIndex = Math.floor(Math.random() * currentPool.length);
+          const fortuneIndex = currentPool[randomIndex];
+          
+          const newPool = currentPool.filter(i => i !== fortuneIndex);
+          setAvailableIndices(newPool);
+          
+          const fortuneText = FORTUNES[fortuneIndex];
+
+          playMysticalSound();
+
+          setActiveFortune({
+              text: fortuneText,
+              x: targetX,
+              y: targetY
+          });
+          
+          setIsConsulting(false);
+          setLoadingPos(null);
+        };
+
+        const sentenceVariants = {
+          hidden: { opacity: 1 },
+          visible: {
+            opacity: 1,
+            transition: {
+              delay: 0.2,
+              staggerChildren: 0.03,
+            },
+          },
+        };
+
+        const letterVariants = {
+          hidden: { opacity: 0 },
+          visible: {
+            opacity: 1,
+          },
+        };
+
+        const buttonVariants = {
+          hidden: { opacity: 0, y: 10 },
+          visible: { 
+            opacity: 1, 
+            y: 0,
+            transition: { duration: 0.5, delay: 0.6, ease: "easeOut" }
+          }
+        };
+
+        return (
+          <div className="min-h-screen w-full bg-[#0a0f1e] relative flex flex-col items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-800 via-[#0a0f1e] to-black opacity-80" />
+            <Sparkles />
+
+            <AnimatePresence>
+              {gameState === 'SPLASH' ? (
+                <motion.div
+                  key="splash"
+                  id="splash-screen"
+                  initial={{ opacity: 0, filter: "blur(10px)" }}
+                  animate={{ opacity: 1, filter: "blur(0px)" }}
+                  exit={{ 
+                    opacity: 0, 
+                    scale: 1.1,
+                    filter: "blur(20px)",
+                    transition: { duration: 1.5, ease: "easeInOut" } 
+                  }}
+                  className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#020617]"
+                >
+                  <WaterRipples />
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2, duration: 1, ease: "easeOut" }}
+                    className="flex flex-col items-center p-6 relative z-10"
+                  >
+                    <h1 className="text-6xl md:text-9xl font-mystical text-shimmer-effect drop-shadow-[0_0_25px_rgba(255,255,255,0.2)] text-center mb-12">
+                      The Sardine's Secret
+                    </h1>
+                    
+                    <div className="flex flex-col items-center gap-6">
+                      <motion.button
+                          onClick={handleStart}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="px-10 py-4 bg-slate-900/50 border border-slate-500 text-slate-200 font-mystical text-2xl md:text-3xl tracking-widest rounded-full hover:bg-slate-800 hover:border-slate-300 hover:text-white transition-all duration-300 shadow-[0_0_30px_rgba(0,0,0,0.5)] backdrop-blur-sm group"
+                      >
+                          <span className="group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.5)] transition-all">
+                          Consult the Fish
+                          </span>
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="game"
+                  initial={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
+                  animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 1.5, ease: "easeOut" }}
+                  className="z-10 w-full max-w-4xl px-4 flex flex-col items-center h-full min-h-[600px] justify-center relative"
+                >
+                  <AnimatePresence>
+                    {gameState === 'CHOOSING' && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -50 }}
+                        className="absolute top-10 text-center pointer-events-none"
+                      >
+                        <h1 className="text-4xl md:text-6xl font-mystical text-transparent bg-clip-text bg-gradient-to-b from-slate-200 to-slate-500 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                          The Sardine's Secret
+                        </h1>
+                        <p className="text-slate-400 mt-4 font-mono uppercase tracking-wider">
+                          Choose a tin to reveal your fate.
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <div className={`flex flex-col md:flex-row gap-8 md:gap-12 items-center justify-center transition-all duration-700 ${gameState !== 'CHOOSING' ? 'w-full h-full' : ''}`}>
+                    {[0, 1, 2].map((id) => (
+                      <Tin
+                        key={id}
+                        id={id}
+                        isSelected={selectedTin === id}
+                        isOtherSelected={selectedTin !== null && selectedTin !== id}
+                        gameState={gameState}
+                        consultedFish={consultedFish}
+                        onSelect={handleTinSelect}
+                        onReset={handleReset}
+                        onSardineClick={handleSardineClick}
+                      />
+                    ))}
+                  </div>
+
+                  <AnimatePresence>
+                      {isConsulting && loadingPos && (
+                          <motion.div
+                              initial={{ opacity: 0, scale: 0 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0 }}
+                              className="fixed z-50 pointer-events-none flex flex-col items-center"
+                              style={{
+                                  left: loadingPos.x,
+                                  top: loadingPos.y,
+                                  transform: 'translate(-50%, -100%)',
+                                  marginTop: '-20px'
+                              }}
+                          >
+                              <div className="mb-4 relative w-12 h-12 flex items-center justify-center">
+                                  <motion.div
+                                      className="absolute inset-0 rounded-full bg-slate-400 opacity-10 blur-md"
+                                      animate={{ scale: [1, 1.2, 1] }}
+                                      transition={{ duration: 2, repeat: Infinity }}
+                                  />
+                                  
+                                  <motion.div 
+                                      className="absolute inset-0 border-[1px] border-slate-400 border-t-transparent border-l-transparent rounded-full"
+                                      animate={{ rotate: 360 }}
+                                      transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                                  />
+                                  
+                                  <motion.div 
+                                      className="absolute inset-2 border-[1px] border-white border-b-transparent border-r-transparent rounded-full"
+                                      animate={{ rotate: -360 }}
+                                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                  />
+                                  
+                                  <motion.div 
+                                      className="w-2 h-2 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.8)]"
+                                      animate={{ opacity: [0.4, 1, 0.4], scale: [0.8, 1.2, 0.8] }}
+                                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                                  />
+                              </div>
+                          </motion.div>
+                      )}
+                  </AnimatePresence>
+
+                  <AnimatePresence>
+                    {activeFortune && (
+                      <React.Fragment key="fortune-overlay">
+                          <MistParticles x={activeFortune.x} y={activeFortune.y} />
+                          <motion.div
+                              initial={{ opacity: 0, scale: 0.8, x: "-50%", y: "-90%" }}
+                              animate={{ opacity: 1, scale: 1, x: "-50%", y: "calc(-100% - 24px)" }}
+                              exit={{ opacity: 0, scale: 0.5, x: "-50%", y: "-90%" }}
+                              className="fixed z-50 max-w-[240px] md:max-w-xs"
+                              style={{ 
+                                  left: activeFortune.x,
+                                  top: activeFortune.y,
+                              }}
+                          >
+                          <div className="relative bg-white text-slate-900 p-4 rounded-xl shadow-[0_0_40px_rgba(255,255,255,0.4)] border-2 border-slate-200">
+                              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 bg-white transform rotate-45 border-b-2 border-r-2 border-slate-200" />
+                              
+                              <motion.p 
+                              className="font-handwriting text-xl md:text-2xl text-center !leading-[1.1] !m-0 !p-0"
+                              variants={sentenceVariants}
+                              initial="hidden"
+                              animate="visible"
+                              onAnimationComplete={() => setIsTextAnimationComplete(true)}
+                              >
+                              {`"${activeFortune.text}"`.split("").map((char, index) => (
+                                  <motion.span key={`${char}-${index}`} variants={letterVariants}>
+                                  {char}
+                                  </motion.span>
+                              ))}
+                              </motion.p>
+                              
+                              <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col items-center gap-1">
+                              <motion.p 
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: isTextAnimationComplete ? 1 : 0 }}
+                                  transition={{ duration: 0.8, ease: "easeOut" }}
+                                  className="font-mono text-[10px] text-slate-600 tracking-[0.2em] font-bold uppercase"
+                              >
+                                  The Sardine Has Spoken
+                              </motion.p>
+                              <motion.button 
+                                  variants={buttonVariants}
+                                  initial="hidden"
+                                  animate={isTextAnimationComplete ? "visible" : "hidden"}
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  playAcceptFateSound();
+                                  setActiveFortune(null); 
+                                  }}
+                                  className="pointer-events-auto px-5 py-1.5 bg-slate-900 text-slate-100 uppercase text-[11px] tracking-widest rounded-full hover:bg-slate-700 shadow-lg font-mono border border-slate-700"
+                              >
+                                  Accept Your Fate
+                              </motion.button>
+                              </div>
+                          </div>
+                          </motion.div>
+                      </React.Fragment>
+                    )}
+                  </AnimatePresence>
+
+                  <AnimatePresence>
+                      {gameState === 'CHOOSING' && (
+                          <motion.button
+                              initial={{ opacity: 0, x: "-50%" }}
+                              animate={{ opacity: 0.6, x: "-50%" }}
+                              exit={{ opacity: 0, x: "-50%" }}
+                              onClick={() => setShowFacts(true)}
+                              className="absolute bottom-10 left-1/2 text-slate-500 hover:text-slate-300 font-mystical text-xl tracking-widest transition-colors flex items-center gap-2 z-30"
+                              whileHover={{ scale: 1.05, opacity: 1 }}
+                              whileTap={{ scale: 0.95 }}
+                          >
+                              <span className="w-5 h-5 rounded-full border border-current flex items-center justify-center text-[10px] font-sans">?</span>
+                              <span>About the Sardines</span>
+                          </motion.button>
+                      )}
+                  </AnimatePresence>
+
+                  <AnimatePresence>
+                    {gameState === 'REVEALED' && (
+                      <motion.button
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={handleReset}
+                        className="absolute bottom-10 px-8 py-3 bg-transparent border border-slate-400 text-slate-300 font-mystical text-xl md:text-2xl tracking-[0.1em] rounded-full hover:bg-slate-800 hover:text-white hover:border-white transition-colors duration-300 shadow-[0_0_20px_rgba(0,0,0,0.5)] z-40"
+                      >
+                        Consult the Fates Again
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
+            <AnimatePresence>
+              {showFacts && <SardineFacts onClose={() => setShowFacts(false)} />}
+            </AnimatePresence>
+          </div>
+        );
+      };
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    </script>
   </body>
 </html>

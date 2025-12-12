@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion, Variants } from 'framer-motion';
 import { TinProps } from '../types';
 import { Sardine } from './Sardine';
+
+const { useState } = React;
 
 export const Tin: React.FC<TinProps & { onSardineClick: (rect: DOMRect, index: number) => void }> = ({
   id,

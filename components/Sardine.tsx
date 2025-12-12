@@ -1,6 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { SardineProps } from '../types';
+
+const { useEffect, useRef } = React;
 
 export const Sardine: React.FC<SardineProps> = ({ id, onClick, delay, isConsulted }) => {
   const controls = useAnimation();

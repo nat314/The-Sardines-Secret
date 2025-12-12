@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Sparkles } from './components/Sparkles';
 import { Tin } from './components/Tin';
@@ -8,6 +8,8 @@ import { SardineFacts } from './components/SardineFacts';
 import { GameState } from './types';
 import { FORTUNES } from './constants';
 import { playTinSound, playMysticalSound, playAcceptFateSound, playResetSound } from './utils/audio';
+
+const { useState } = React;
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>('SPLASH');

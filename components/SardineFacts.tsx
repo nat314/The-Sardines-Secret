@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { playPageTurnSound, playCloseClickSound } from '../utils/audio';
+
+const { useState, useEffect } = React;
 
 const FACTS = [
   { 
